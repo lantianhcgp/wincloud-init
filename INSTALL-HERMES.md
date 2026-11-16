@@ -16,24 +16,27 @@
 5. 安装器通过管道输出时 stdout 会**假冻结**（缓冲），判断进度请看
    进程列表 / `%LOCALAPPDATA%\hermes` 目录变化，别只盯日志。
 
-## 主路线：本地 bundle（绕开 github 传输掐流）
+## 主路线：仓库已由我方预置（绕开 github 传输掐流）
 
-我方（外部助手）会把官方仓库最新代码打成 bundle 传到本机：
-**`C:\Windows\Temp\hermes-agent.bundle`**（含全部历史与标签）。
+我方已把官方仓库（main = `aa6d201`，即当前最新提交）连同 `.git` 历史整体搬到本机：
+**`%LOCALAPPDATA%\hermes\hermes-agent`**。
+注意：该仓库是**浅克隆**（`.git/shallow` 断层文件一并携带）——这是刻意保留的，
+**不要 unshallow、不要"修复"断层**；它已能支撑安装器的全部操作。
+旧文件 `C:\Windows\Temp\hermes-agent.bundle` 已作废，可删。
 
-若该文件存在（先 `Test-Path` 确认）：
+先验证预置结果：
 
 ```powershell
-$H = "$env:LOCALAPPDATA\hermes"
-git clone --branch main C:\Windows\Temp\hermes-agent.bundle "$H\hermes-agent"
-git -C "$H\hermes-agent" remote set-url origin https://github.com/NousResearch/hermes-agent.git
-git -C "$H\hermes-agent" status   # 应在 main、工作区干净
+$H = "$env:LOCALAPPDATA\hermes\hermes-agent"
+git -C $H log --oneline -1   # 应为 aa6d201dfd ...
+git -C $H status             # 应在 main 且工作区干净
 ```
 
-然后跑官方安装器（它检测到已有仓库会走"更新"分支，origin/main 已是最新，
-fetch 只做协商、零对象传输，不会触发掐流）：
+然后跑官方安装器（**必须先设 HERMES_INSTALL_CHANNEL=main**：跳过 stable 标签检出，
+否则会需要断层以下的历史对象而失败；设 main 后 fetch 只做协商、零对象传输）：
 
 ```powershell
+$env:HERMES_INSTALL_CHANNEL = "main"
 iex (irm https://hermes-agent.nousresearch.com/install.ps1)
 ```
 
